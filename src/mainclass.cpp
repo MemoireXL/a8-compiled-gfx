@@ -39,29 +39,52 @@ void outpixel2(QImage& myImage,int byteIndex,int minx, int maxx,int y, QTextStre
     int curr_minx=byteIndex*4;
     int curr_maxx=(byteIndex+1)*4-1;
     int value=0;
-    int mask=0;
+    int maxvalue=0;
+
     qDebug()<<curr_minx <<curr_maxx << minx << maxx;
     qDebug()<<qMax(minx,curr_minx) << qMin(maxx,curr_maxx);
+
     int x;
 
     for (x=qMax(minx,curr_minx); x<=qMin(maxx,curr_maxx);x++){
         QRgb currentPixel = (myImage.pixel(2*x, y));
         value*=4;
-        mask*=4;
+        maxvalue*=4;
 
         if (qAlpha(currentPixel) != 0) {
             value+=pcolor(currentPixel);
-            mask+=3;
+            maxvalue+=3;
         }
     }
 
     for (; x<=curr_maxx;x++){
         value*=4;
-        mask*=4;
+        maxvalue*=4;
 
     }
 
-    mask=255-mask;
+    int mask=255-maxvalue;
+
+
+    // maxvalue = 255-mask (1) ou de facon equivalente max = 255-maxvalue
+
+    // or par definition
+    // value =< maxvalue // some 0 instead of 1
+    //
+    // d'ou value =< 255-mask (1)
+    // et donc
+    // value + mask =< 255
+
+    // minvalue = 0
+
+    // donc
+
+    // mask =< value+mask =< maxvalue+mask
+
+    // if (value==mask)
+    // mask =< mask+mask =< maxvalue + mask
+
+    // mask+mask =< 255
 
     // screen value = ((screen value) & mask) | value
 
@@ -71,29 +94,24 @@ void outpixel2(QImage& myImage,int byteIndex,int minx, int maxx,int y, QTextStre
         afile << "\tSTA ($80),Y" << endl;
     } else {
         // mask != 0
-
-        if (value==0){
-            if (mask==255){
-                // Nothing to do
-            } else {
+        if (mask==255){
+            // value + mask =< 255
+            // hence value=0;
+            // Nothing to do
+        } else {
+            // mask < 255
+            if (value==0){
                 afile << "\tLDA ($80),Y" << endl;
                 afile << "\tAND #" << mask << endl;
                 afile << "\tSTA ($80),Y" << endl;
-            }
-        } else {
-            // mask != 0 && value != 0
-            if (mask==255){
-                afile << "\tLDA ($80),Y" << endl;
-                afile << "\tORA #" << value << endl;
-                afile << "\tSTA ($80),Y" << endl;
-            } else if (mask==value){
-                afile << "\tLDA #" << value << endl;
-                afile << "\tSTA ($80),Y" << endl;
-            } else if (mask==255-value){
+            } else if (mask+value==255){
+                // value = maxvalue
+                // -> no '0' to put
                 afile << "\tLDA #" << value << endl;
                 afile << "\tORA #" << value << endl;
                 afile << "\tSTA ($80),Y" << endl;
             } else {
+                // mask+value < 255
                 afile << "\tLDA ($80),Y" << endl;
                 afile << "\tAND #" << mask << endl;
                 afile << "\tORA #" << value << endl;
